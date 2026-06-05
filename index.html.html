@@ -1,0 +1,1500 @@
+<!DOCTYPE html>
+<html lang="pt-pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mundo das Formas - O Jogo</title>
+    <!-- Tailwind CSS para estilização moderna e responsiva -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome para ícones divertidos -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <!-- Google Fonts: Comfortaa para visual lúdico infantil -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Comfortaa:wght@400;700&display=swap" rel="stylesheet">
+
+    <style>
+        body {
+            font-family: 'Comfortaa', cursive;
+            background-color: #4f46e5;
+            background-image: url('https://raw.githubusercontent.com/augustoborges-ship-it/Jogo-das-Forma-Geom-tricas/main/BLACKGROUND_PERGUNTAS_1.png');
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+            background-repeat: no-repeat;
+            height: 100vh;
+            overflow: hidden;
+        }
+        /* Caixa principal com efeito de relevo e profundidade 3D sutil estilo Duolingo */
+        .console-container {
+            background-color: rgba(255, 255, 255, 0.85) !important;
+            backdrop-filter: blur(12px) !important;
+            -webkit-backdrop-filter: blur(12px) !important;
+            border: 4px solid #e2e8f0 !important; /* border-slate-200 */
+            border-bottom: 16px solid #cbd5e1 !important; /* border-slate-300 - relevo e profundidade sutil idêntica às pecinhas */
+            box-shadow: 
+                0 25px 50px -12px rgba(0, 0, 0, 0.15), 
+                inset 0 2px 0 rgba(255, 255, 255, 0.6) !important; /* Brilho de luz sutil no limite superior */
+            border-radius: 40px !important;
+        }
+        /* Efeitos visuais divertidos e táteis */
+        .correct-glow {
+            animation: pulse-glow 1.2s infinite alternate;
+        }
+        @keyframes pulse-glow {
+            from { 
+                box-shadow: 0 0 15px rgba(74, 222, 128, 0.6); 
+                transform: scale(1);
+            }
+            to { 
+                box-shadow: 0 0 35px rgba(74, 222, 128, 1); 
+                transform: scale(1.05);
+            }
+        }
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            20%, 60% { transform: translateX(-8px); }
+            40%, 80% { transform: translateX(8px); }
+        }
+        .matching-selected {
+            border-color: #3b82f6 !important;
+            background-color: #eff6ff !important;
+            transform: scale(1.08);
+            box-shadow: 0 10px 15px -3px rgba(59, 130, 246, 0.3);
+        }
+        .matching-paired {
+            border-color: #10b981 !important;
+            background-color: #ecfdf5 !important;
+            pointer-events: none;
+            opacity: 0.85;
+            transform: scale(0.95);
+        }
+        .animate-shake {
+            animation: shake 0.4s ease-in-out;
+        }
+        @keyframes successPopSubtle {
+            0% { transform: scale(0); opacity: 0; }
+            20% { transform: scale(1.2); opacity: 1; }
+            85% { transform: scale(1); opacity: 1; }
+            100% { transform: scale(0.8) translateY(-15px); opacity: 0; }
+        }
+        .animate-success-pop-subtle {
+            animation: successPopSubtle 1.2s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        }
+        @keyframes errorPopSubtle {
+            0% { transform: scale(0) rotate(-15deg); opacity: 0; }
+            20% { transform: scale(1.2) rotate(10deg); opacity: 1; }
+            85% { transform: scale(1); opacity: 1; }
+            100% { transform: scale(0.8) translateY(-15px); opacity: 0; }
+        }
+        .animate-error-pop-subtle {
+            animation: errorPopSubtle 1.2s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        }
+        @keyframes floatBtn {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-12px); }
+        }
+        .animate-float-btn {
+            animation: floatBtn 3.5s ease-in-out infinite;
+        }
+    </style>
+    <script>
+        // Estas funções são declaradas imediatamente na head para que o onerror do HTML nunca dê ReferenceError
+        function createDuduqFallback() {
+            var div = document.createElement('div');
+            div.className = "w-20 h-20 md:w-28 md:h-28 bg-indigo-100 rounded-full flex items-center justify-center text-4xl shadow-md border-4 border-indigo-200 animate-bounce animate-float-btn";
+            div.innerText = "🤖";
+            return div;
+        }
+        function createFallbackStartBtn() {
+            var div = document.createElement('div');
+            div.className = "bg-green-500 text-white text-3xl font-bold py-6 px-12 rounded-full shadow-2xl border-b-8 border-green-700";
+            div.innerText = "JOGAR AGORA!";
+            return div;
+        }
+        function createHeartFallbackSVG() {
+            var div = document.createElement('div');
+            div.className = "text-rose-500 text-2xl md:text-3xl animate-pulse flex items-center justify-center w-8 h-8 md:w-9 md:h-9";
+            div.innerHTML = '<i class="fa-solid fa-heart"></i>';
+            return div;
+        }
+        function createChestFallback() {
+            var span = document.createElement('span');
+            span.className = "text-6xl md:text-8xl mb-2 filter drop-shadow-md";
+            span.innerText = "🧰";
+            return span;
+        }
+        function createObjectFallback(label) {
+            var span = document.createElement('span');
+            span.className = "text-5xl md:text-7xl pointer-events-none mb-2";
+            span.innerText = label.split(' ')[1] || "📦";
+            return span;
+        }
+    </script>
+</head>
+<body class="min-h-screen flex flex-col items-center justify-between p-4 overflow-x-hidden select-none">
+
+    <!-- Canvas para Confetes de Vitória -->
+    <canvas id="confetti-canvas" class="fixed top-0 left-0 w-full h-full pointer-events-none z-50 hidden"></canvas>
+
+    <!-- CABEÇALHO / PLACAR E VIDAS (Oculto no Ecrã Inicial) -->
+    <header id="game-header" class="hidden w-full max-w-4xl bg-white/95 backdrop-blur-md rounded-2xl p-4 shadow-xl flex flex-wrap justify-between items-center gap-3 z-10 border-4 border-yellow-300">
+        <div class="flex items-center gap-3">
+            <button onclick="showExitModal()" class="text-slate-400 hover:text-slate-600 transition-colors text-2xl font-bold px-2">✕</button>
+            <div class="bg-yellow-400 text-white p-2.5 rounded-xl shadow-md">
+                <i class="fa-solid fa-shapes text-xl animate-bounce"></i>
+            </div>
+            <div>
+                <h1 class="text-lg md:text-xl font-bold text-slate-800">Mundo das Formas</h1>
+                <p class="text-[10px] md:text-xs text-slate-500 font-semibold">Editora Brasil Cultural</p>
+            </div>
+        </div>
+        
+        <div class="flex items-center gap-3">
+            <!-- Botão de controle de áudio de fundo -->
+            <button id="mute-btn" onclick="toggleMute()" class="bg-indigo-500 hover:bg-indigo-600 active:scale-95 text-white p-2.5 rounded-xl shadow-md border-b-4 border-indigo-700 active:border-b-0 active:translate-y-[4px] transition-all">
+                <i id="mute-icon" class="fa-solid fa-volume-high text-lg"></i>
+            </button>
+            <!-- Vidas (Corações) -->
+            <div class="flex items-center gap-1.5 bg-rose-50 border-2 border-rose-200 px-3 py-1.5 rounded-full shadow-inner">
+                <div id="lives-container" class="flex gap-1">
+                    <!-- Populado via JS -->
+                </div>
+            </div>
+            <!-- Pontuação -->
+            <div class="bg-indigo-100 text-indigo-700 px-4 py-2 rounded-full font-bold text-lg border-2 border-indigo-300">
+                ⭐ <span id="score-val">0</span> pt
+            </div>
+            <button onclick="resetGame()" class="bg-red-500 hover:bg-red-600 active:scale-95 text-white p-2.5 rounded-full shadow-md transition-all">
+                <i class="fa-solid fa-rotate-right text-lg"></i>
+            </button>
+        </div>
+    </header>
+
+    <!-- CONTAINER PRINCIPAL DO JOGO (GLASSMORPHISM TOTALMENTE EXPANDIDO) -->
+    <main id="game-container" class="relative w-full max-w-4xl bg-white/95 backdrop-blur-md rounded-3xl shadow-2xl p-6 md:p-8 my-2 flex-grow flex flex-col justify-center min-h-0 border-8 border-indigo-400 transition-all duration-500">
+        
+        <!-- Barra de Tempo Dinâmica -->
+        <div id="timer-container" class="hidden w-full bg-slate-100 rounded-full h-4 border-2 border-slate-200 overflow-hidden mb-6 shadow-inner">
+            <div id="timer-bar" class="bg-green-500 h-full w-full rounded-full transition-all duration-300 ease-out"></div>
+        </div>
+
+        <!-- TELA 1: ECRÃ INICIAL (MENU) -->
+        <div id="screen-start" class="relative flex flex-col items-center justify-end text-center p-0 min-h-[500px] w-full overflow-visible">
+            <div class="absolute bottom-[-115px] md:bottom-[-150px] left-1/2 -translate-x-1/2 z-20 overflow-visible">
+                <div class="animate-float-btn">
+                    <button onclick="startGame()" class="w-80 md:w-[410px] active:scale-95 hover:scale-105 transition-all duration-300 transform-none">
+                        <img src="https://raw.githubusercontent.com/augustoborges-ship-it/Jogo-das-Forma-Geom-tricas/main/BOT%C3%83O%20INICIAR_PNG.png" alt="Iniciar Jogo" class="w-full h-auto drop-shadow-2xl" onerror="this.replaceWith(createFallbackStartBtn())">
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- TELA DE JORNADA ATIVA (Com cabeçalho de progresso lúdico e limpo de caixas brancas compridas) -->
+        <div id="screen-gameplay" class="hidden flex-grow flex flex-col justify-between h-full gap-4 min-h-0">
+            <div class="flex justify-between items-center bg-slate-100 p-2.5 rounded-xl border-2 border-slate-200 flex-shrink-0">
+                <span id="gameplay-level-title" class="text-slate-800 font-bold text-xs md:text-base">Tema 1: Identificação & Encaixe 🎯</span>
+                <span class="bg-indigo-600 text-white font-bold px-3 py-1 rounded-lg text-xs md:text-sm" id="gameplay-progress">Jornada: 1 de 33</span>
+            </div>
+
+            <!-- ÁREA INTERATIVA MULTI-MECÂNICA (Espaço dinâmico e flexível expandido de ponta a ponta) -->
+            <!-- DUDUQ MEGAFONE integrado de forma sutil e flutuante no canto superior esquerdo -->
+            <div id="interactive-game-zone" class="relative w-full flex-1 min-h-0 flex items-center justify-center bg-slate-50/50 rounded-2xl p-4 border-2 border-dashed border-slate-200 overflow-visible">
+                <!-- Avatar flutuante do Duduq com Megafone para escutar novamente -->
+                <div id="floating-duduq-megafone" class="absolute top-3 left-3 w-16 h-16 md:w-20 md:h-20 z-40 cursor-pointer overflow-visible hover:scale-110 active:scale-95 transition-transform" onclick="readQuestionWithSpeech()" title="Ouvir Pergunta">
+                    <img src="https://raw.githubusercontent.com/augustoborges-ship-it/Jogo-das-Forma-Geom-tricas/main/DUDUD_MEGAFONE.svg" class="w-full h-full object-contain animate-float-btn" alt="Duduq Ouvir" onerror="this.replaceWith(createDuduqFallback())">
+                </div>
+                <!-- O conteúdo dinâmico das lições (formas geométricas gigantes) entra aqui -->
+                <div id="dynamic-content-wrapper" class="w-full h-full flex items-center justify-center"></div>
+            </div>
+        </div>
+
+        <!-- TELA: TELA DE VITÓRIA -->
+        <div id="screen-win" class="hidden flex flex-col items-center text-center py-8">
+            <div class="text-6xl md:text-8xl mb-6">🏆</div>
+            <h2 class="text-3xl md:text-5xl font-bold text-green-600 mb-2">Parabéns, Campeão!</h2>
+            <p class="text-xl text-slate-600 mb-6">Completaste todos os desafios da jornada com sucesso!</p>
+            
+            <div class="bg-yellow-50 border-4 border-yellow-300 rounded-2xl p-6 max-w-sm w-full shadow-inner mb-8 text-center">
+                <span class="text-slate-500 uppercase text-xs tracking-wider font-bold block mb-1">Pontuação Final</span>
+                <span class="text-4xl font-black text-yellow-600"><span id="final-score">0</span> pontos!</span>
+            </div>
+
+            <button onclick="resetGame()" class="bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white text-xl font-bold py-4 px-8 rounded-2xl shadow-lg border-b-6 border-indigo-800 hover:border-b-4 hover:translate-y-[2px] transition-all flex items-center justify-center gap-3">
+                <i class="fa-solid fa-play"></i> JOGAR NOVAMENTE!
+            </button>
+        </div>
+
+        <!-- TELA: TELA DE GAME OVER (FIM DE JOGO) -->
+        <div id="screen-game-over" class="hidden flex flex-col items-center text-center py-8">
+            <div class="text-6xl md:text-8xl mb-6">💔</div>
+            <h2 class="text-3xl md:text-5xl font-bold text-red-500 mb-2">Tenta novamente!</h2>
+            <p class="text-xl text-slate-600 mb-6">As tuas vidas acabaram, mas podes recomeçar para aprender ainda mais!</p>
+            
+            <button onclick="startGame()" class="bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white text-xl font-bold py-4 px-8 rounded-2xl shadow-lg border-b-6 border-indigo-800 hover:border-b-4 hover:translate-y-[2px] transition-all flex items-center justify-center gap-3">
+                <i class="fa-solid fa-arrow-rotate-left"></i> RECOMEÇAR
+            </button>
+        </div>
+
+    </main>
+
+    <!-- MODAL DE CONFIRMAÇÃO DE SAÍDA SIMPLIFICADO PARA CRIANÇAS -->
+    <div id="exit-modal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm hidden p-4">
+        <div class="bg-white rounded-3xl p-8 max-w-sm w-full text-center shadow-2xl border-4 border-slate-200">
+            <div class="w-24 h-24 mx-auto mb-4">
+                <img src="https://raw.githubusercontent.com/augustoborges-ship-it/Jogo-das-Forma-Geom-tricas/main/DUDUQ%20TRISTE.svg" class="w-full h-full object-contain animate-float-btn" alt="Duduq Triste" onerror="this.replaceWith(createDuduqFallback())" />
+            </div>
+            <h3 class="text-2xl font-black text-slate-800 mb-6">Sair do Jogo?</h3>
+            <div class="flex flex-col gap-3">
+                <button onclick="hideExitModal()" class="w-full bg-green-500 hover:bg-green-600 active:scale-95 text-white font-bold py-4 px-6 rounded-2xl shadow-md border-b-4 border-green-700 active:border-b-0 active:translate-y-[4px] transition-all text-lg flex items-center justify-center gap-2">
+                    <span>🎮 JOGAR!</span>
+                </button>
+                <button onclick="exitSession()" class="w-full bg-slate-100 hover:bg-slate-200 active:scale-95 text-slate-600 font-bold py-3 px-6 rounded-2xl border-2 border-slate-200 transition-all text-sm">
+                    <span>🚪 SAIR</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <footer id="game-footer" class="text-center text-white/90 text-xs md:text-sm mt-2 mb-4 bg-slate-800/60 backdrop-blur-sm py-2 px-6 rounded-full font-medium shadow">
+        © 2026 Copyright | Editora Brasil Cultural
+    </footer>
+
+    <!-- LÓGICA DE PROGRAMAÇÃO DE ALTA ESCOLA (100% INTEGRADA E LIVRE DE BUGS) -->
+    <script>
+        var score = 0;
+        var lives = 3;
+        var activeScreen = 'screen-start';
+        var currentLevelIndex = 0;
+        var isProcessingAnswer = false; // Bloqueio de cliques simultâneos
+        var LEVEL_TIME_LIMIT = 45; // 45 segundos por desafio
+        var timerInterval = null;
+        var timeLeft = 0;
+
+        // Variáveis de estado globais para a mecânica de Ligar os Pares (Matching)
+        var matchingSelectedShape = null;
+        var matchingSelectedName = null;
+        var matchedCount = 0;
+
+        // Elementos de áudio globais
+        var bgMusic = null;
+        var isMusicMuted = false;
+
+        var assets = {
+            heart: 'https://raw.githubusercontent.com/augustoborges-ship-it/Jogo-das-Forma-Geom-tricas/main/ELEMENTO_CORA%C3%87%C3%83O_PNG.png',
+            correct: 'https://raw.githubusercontent.com/augustoborges-ship-it/Jogo-das-Forma-Geom-tricas/main/ELEMENTO_CORRETO_PNG.png',
+            incorrect: 'https://raw.githubusercontent.com/augustoborges-ship-it/Jogo-das-Forma-Geom-tricas/main/ELEMENTO_ERRO_PNG.png',
+            startBtn: 'https://raw.githubusercontent.com/augustoborges-ship-it/Jogo-das-Forma-Geom-tricas/main/BOT%C3%83O%20INICIAR_PNG.png',
+            startBg: 'https://raw.githubusercontent.com/augustoborges-ship-it/Jogo-das-Forma-Geom-tricas/main/TELA%20INICIAL%20DO%20JOGO_PNG.png',
+            gameBg: 'https://raw.githubusercontent.com/augustoborges-ship-it/Jogo-das-Forma-Geom-tricas/main/BACKGROUND_PERGUNTAS.png',
+            chest: 'https://raw.githubusercontent.com/augustoborges-ship-it/Jogo-das-Forma-Geom-tricas/main/BA%C3%9A_PNG.png',
+            
+            // Assets SVGs de objetos do mundo real
+            janela: 'https://raw.githubusercontent.com/augustoborges-ship-it/Jogo-das-Forma-Geom-tricas/main/JANELA.svg',
+            livro: 'https://raw.githubusercontent.com/augustoborges-ship-it/Jogo-das-Forma-Geom-tricas/main/LIVRO.svg',
+            bola: 'https://raw.githubusercontent.com/augustoborges-ship-it/Jogo-das-Forma-Geom-tricas/main/BOLA.svg',
+            pizza: 'https://raw.githubusercontent.com/augustoborges-ship-it/Jogo-das-Forma-Geom-tricas/main/PIZZA.svg',
+            diamante: 'https://raw.githubusercontent.com/augustoborges-ship-it/Jogo-das-Forma-Geom-tricas/main/DIAMANTE.svg',
+
+            // Avatares do Duduq para as falas
+            duduqArtista: 'https://raw.githubusercontent.com/augustoborges-ship-it/Jogo-das-Forma-Geom-tricas/main/DUDUQ%20ARTISTA.svg',
+            duduqAventureiro: 'https://raw.githubusercontent.com/augustoborges-ship-it/Jogo-das-Forma-Geom-tricas/main/DUDUQ%20AVENTUREIRO.svg',
+            duduqContente: 'https://raw.githubusercontent.com/augustoborges-ship-it/Jogo-das-Forma-Geom-tricas/main/DUDUQ%20CONTENTE.svg',
+            duduqEstudante: 'https://raw.githubusercontent.com/augustoborges-ship-it/Jogo-das-Forma-Geom-tricas/main/DUDUQ%20ESTUDANTE.svg',
+            duduqObservador: 'https://raw.githubusercontent.com/augustoborges-ship-it/Jogo-das-Forma-Geom-tricas/main/DUDUQ%20OBSERVADOR.svg',
+            duduqTriste: 'https://raw.githubusercontent.com/augustoborges-ship-it/Jogo-das-Forma-Geom-tricas/main/DUDUQ%20TRISTE.svg',
+            
+            startSfx: 'https://raw.githubusercontent.com/augustoborges-ship-it/Jogo-das-Forma-Geom-tricas/main/lest%C2%B4go_iniciar.mp3',
+            bgMusicUrl: 'https://raw.githubusercontent.com/augustoborges-ship-it/Jogo-das-Forma-Geom-tricas/main/SONOPLASTIA%20DE%20FUNDO.mp3'
+        };
+
+        // Configuração de formas e sombras
+        var shapesConfig = {
+            circulo: { name: 'Círculo', img: 'https://raw.githubusercontent.com/augustoborges-ship-it/Jogo-das-Forma-Geom-tricas/main/C%C3%8DRCULO_SVG.svg', shadow: 'https://raw.githubusercontent.com/augustoborges-ship-it/Jogo-das-Forma-Geom-tricas/main/SOMBRA_C%C3%8DRCULO_PNG.png', color: '#10b981' }, // Verde
+            losango: { name: 'Losango', img: 'https://raw.githubusercontent.com/augustoborges-ship-it/Jogo-das-Forma-Geom-tricas/main/LOSANGO_SVG.svg', shadow: 'https://raw.githubusercontent.com/augustoborges-ship-it/Jogo-das-Forma-Geom-tricas/main/SOMBRA_LOSANGO_PNG.png', color: '#f97316' }, // Laranja
+            quadrado: { name: 'Quadrado', img: 'https://raw.githubusercontent.com/augustoborges-ship-it/Jogo-das-Forma-Geom-tricas/main/QUADRADO_SVG.svg', shadow: 'https://raw.githubusercontent.com/augustoborges-ship-it/Jogo-das-Forma-Geom-tricas/main/SOMBRA_QUADRADO_PNG.png', color: '#ef4444' }, // Vermelho
+            retangulo: { name: 'Retângulo', img: 'https://raw.githubusercontent.com/augustoborges-ship-it/Jogo-das-Forma-Geom-tricas/main/RET%C3%82NGULO_SVG.svg', shadow: 'https://raw.githubusercontent.com/augustoborges-ship-it/Jogo-das-Forma-Geom-tricas/main/SOMBRA_RET%C3%82NGULO_PNG.png', color: '#3b82f6' }, // Azul
+            triangulo: { name: 'Triângulo', img: 'https://raw.githubusercontent.com/augustoborges-ship-it/Jogo-das-Forma-Geom-tricas/main/TRI%C3%82NGULO_SVG.svg', shadow: 'https://raw.githubusercontent.com/augustoborges-ship-it/Jogo-das-Forma-Geom-tricas/main/SOMBRA_TRI%C3%82NGULO_PNG.png', color: '#eab308' } // Amarelo
+        };
+
+        // Variantes coloridas para suporte ao baralhamento e abstração de cores
+        var shapeVariants = {
+            circulo: [
+                { color: 'verde', img: 'https://raw.githubusercontent.com/augustoborges-ship-it/Jogo-das-Forma-Geom-tricas/main/C%C3%8DRCULO_SVG.svg' },
+                { color: 'amarelo', img: 'https://raw.githubusercontent.com/augustoborges-ship-it/Jogo-das-Forma-Geom-tricas/main/C%C3%8DRCULO_AMARELO.svg' },
+                { color: 'azul', img: 'https://raw.githubusercontent.com/augustoborges-ship-it/Jogo-das-Forma-Geom-tricas/main/C%C3%8DRCULO_AZUL.svg' },
+                { color: 'laranja', img: 'https://raw.githubusercontent.com/augustoborges-ship-it/Jogo-das-Forma-Geom-tricas/main/C%C3%8DRCULO_LARANJA.svg' },
+                { color: 'roxo', img: 'https://raw.githubusercontent.com/augustoborges-ship-it/Jogo-das-Forma-Geom-tricas/main/C%C3%8DRCULO_ROXO.svg' },
+                { color: 'vermelho', img: 'https://raw.githubusercontent.com/augustoborges-ship-it/Jogo-das-Forma-Geom-tricas/main/C%C3%8DRCULO_VERMELHO.svg' }
+            ],
+            triangulo: [
+                { color: 'amarelo', img: 'https://raw.githubusercontent.com/augustoborges-ship-it/Jogo-das-Forma-Geom-tricas/main/TRI%C3%82NGULO_SVG.svg' },
+                { color: 'azul', img: 'https://raw.githubusercontent.com/augustoborges-ship-it/Jogo-das-Forma-Geom-tricas/main/TRI%C3%82NGULO_AZUL.svg' },
+                { color: 'laranja', img: 'https://raw.githubusercontent.com/augustoborges-ship-it/Jogo-das-Forma-Geom-tricas/main/TRI%C3%82NGULO_LARANJA.svg' },
+                { color: 'roxo', img: 'https://raw.githubusercontent.com/augustoborges-ship-it/Jogo-das-Forma-Geom-tricas/main/TRI%C3%82NGULO_ROXO.svg' },
+                { color: 'verde', img: 'https://raw.githubusercontent.com/augustoborges-ship-it/Jogo-das-Forma-Geom-tricas/main/TRI%C3%82NGULO_VERDE.svg' },
+                { color: 'vermelho', img: 'https://raw.githubusercontent.com/augustoborges-ship-it/Jogo-das-Forma-Geom-tricas/main/TRI%C3%82NGULO_VERMELHO.svg' }
+            ],
+            quadrado: [
+                { color: 'vermelho', img: 'https://raw.githubusercontent.com/augustoborges-ship-it/Jogo-das-Forma-Geom-tricas/main/QUADRADO_SVG.svg' },
+                { color: 'amarelo', img: 'https://raw.githubusercontent.com/augustoborges-ship-it/Jogo-das-Forma-Geom-tricas/main/QUADRADO_AMARELO.svg' },
+                { color: 'azul', img: 'https://raw.githubusercontent.com/augustoborges-ship-it/Jogo-das-Forma-Geom-tricas/main/QUADRADO_AZUL.svg' },
+                { color: 'laranja', img: 'https://raw.githubusercontent.com/augustoborges-ship-it/Jogo-das-Forma-Geom-tricas/main/QUADRADO_LARANJA.svg' },
+                { color: 'roxo', img: 'https://raw.githubusercontent.com/augustoborges-ship-it/Jogo-das-Forma-Geom-tricas/main/QUADRADO_ROXO.svg' },
+                { color: 'verde', img: 'https://raw.githubusercontent.com/augustoborges-ship-it/Jogo-das-Forma-Geom-tricas/main/QUADRADO_VERDE.svg' }
+            ],
+            losango: [
+                { color: 'laranja', img: 'https://raw.githubusercontent.com/augustoborges-ship-it/Jogo-das-Forma-Geom-tricas/main/LOSANGO_SVG.svg' }
+            ],
+            retangulo: [
+                { color: 'azul', img: 'https://raw.githubusercontent.com/augustoborges-ship-it/Jogo-das-Forma-Geom-tricas/main/RET%C3%82NGULO_SVG.svg' },
+                { color: 'vermelho', img: 'https://raw.githubusercontent.com/augustoborges-ship-it/Jogo-das-Forma-Geom-tricas/main/RET%C3%8ANGULO_VERMELHO.svg' },
+                { color: 'verde', img: 'https://raw.githubusercontent.com/augustoborges-ship-it/Jogo-das-Forma-Geom-tricas/main/RET%C3%8ANGULO_VERDE.svg' },
+                { color: 'roxo', img: 'https://raw.githubusercontent.com/augustoborges-ship-it/Jogo-das-Forma-Geom-tricas/main/RET%C3%8ANGULO_ROXO.svg' },
+                { color: 'laranja', img: 'https://raw.githubusercontent.com/augustoborges-ship-it/Jogo-das-Forma-Geom-tricas/main/RET%C3%8ANGULO_LARANJA.svg' },
+                { color: 'amarelo', img: 'https://raw.githubusercontent.com/augustoborges-ship-it/Jogo-das-Forma-Geom-tricas/main/RET%C3%8ANGULO_AMARELO.svg' }
+            ]
+        };
+
+        function getShapeImgUrl(shapeKey, colorOverride) {
+            var list = shapeVariants[shapeKey];
+            if (!list) return shapesConfig[shapeKey].img;
+            if (colorOverride) {
+                for (var i = 0; i < list.length; i++) {
+                    if (list[i].color === colorOverride) return list[i].img;
+                }
+            }
+            var randIndex = Math.floor(Math.random() * list.length);
+            return list[randIndex].img;
+        }
+
+        function getStandardColor(shape) {
+            var standardColors = {
+                circulo: "verde",
+                triangulo: "amarelo",
+                quadrado: "vermelho",
+                losango: "laranja",
+                retangulo: "azul"
+            };
+            return standardColors[shape] || "verde";
+        }
+
+        function getRandomColorExcept(shape, excludedColor) {
+            var list = shapeVariants[shape];
+            if (!list || list.length <= 1) return getStandardColor(shape);
+            var filtered = list.filter(function(item) { return item.color !== excludedColor; });
+            if (filtered.length === 0) return getStandardColor(shape);
+            var randIndex = Math.floor(Math.random() * filtered.length);
+            return filtered[randIndex].color;
+        }
+
+        // --- DEFINIÇÃO DOS 33 DESAFIOS SEQUENCIAIS DO GUIA PEDAGÓGICO ---
+        var gameLevels = [
+            // === TEMA 1: IDENTIFICAÇÃO & ENCAIXE DE SOMBRAS (Desafios 1 a 8) ===
+            { id: 1, themeTitle: "Tema 1: Identificação & Encaixe 🎯", question: "Qual destas formas é o Círculo verde?", type: "click", correctAnswer: "circulo", options: ["triangulo", "circulo", "quadrado"], forceColor: "verde" },
+            { id: 2, themeTitle: "Tema 1: Identificação & Encaixe 🎯", question: "Clica na sombra perfeita correspondente ao Círculo verde!", type: "sombra_click", sourceShape: "circulo", correctAnswer: "circulo", options: ["retangulo", "quadrado", "circulo"] },
+            { id: 3, themeTitle: "Tema 1: Identificação & Encaixe 🎯", question: "Encontra a silhueta certa do Triângulo amarelo!", type: "sombra_click", sourceShape: "triangulo", correctAnswer: "triangulo", options: ["triangulo", "losango", "retangulo"] },
+            { id: 4, themeTitle: "Tema 1: Identificação & Encaixe 🎯", question: "Qual destas sombras pretas pertence ao Losango?", type: "sombra_click", sourceShape: "losango", correctAnswer: "losango", options: ["circulo", "losango", "quadrado"] },
+            { id: 5, themeTitle: "Tema 1: Identificação & Encaixe 🎯", question: "Arraste o Quadrado vermelho até à sua sombra correspondente!", type: "drag_shadow", dragShape: "quadrado", correctAnswer: "quadrado", options: ["quadrado", "circulo", "triangulo"] },
+            { id: 6, themeTitle: "Tema 1: Identificação & Encaixe 🎯", question: "Arraste o Círculo verde até à sua sombra!", type: "drag_shadow", dragShape: "circulo", correctAnswer: "circulo", options: ["triangulo", "circulo", "losango"] },
+            { id: 7, themeTitle: "Tema 1: Identificação & Encaixe 🎯", question: "Arraste o Triângulo amarelo para a sombra correta!", type: "drag_shadow", dragShape: "triangulo", correctAnswer: "triangulo", options: ["triangulo", "quadrado", "retangulo"] },
+            { id: 8, themeTitle: "Tema 1: Identificação & Encaixe 🎯", question: "Arraste o Retângulo azul até à sua sombra correspondente!", type: "drag_shadow", dragShape: "retangulo", correctAnswer: "retangulo", options: ["circulo", "retangulo", "quadrado"] },
+
+            // === TEMA 2: FORMAS NO MUNDO REAL (Desafios 9 a 15) ===
+            { id: 9, themeTitle: "Tema 2: Formas no Mundo Real ⚽", question: "Qual destes objetos do dia a dia mais se parece com um Círculo?", type: "click_object", correctAnswer: "bola", options: [{ key: "livro", label: "Livro 📚", shape: "retangulo" }, { key: "bola", label: "Bola ⚽", shape: "circulo" }, { key: "janela", label: "Janela 🪟", shape: "quadrado" }] },
+            { id: 10, themeTitle: "Tema 2: Formas no Mundo Real ⚽", question: "Qual destes objetos do cotidiano se parece com um Quadrado?", type: "click_object", correctAnswer: "janela", options: [{ key: "janela", label: "Janela 🪟", shape: "quadrado" }, { key: "bola", label: "Bola ⚽", shape: "circulo" }, { key: "pizza", label: "Pizza 🍕", shape: "triangulo" }] },
+            { id: 11, themeTitle: "Tema 2: Formas no Mundo Real ⚽", question: "Qual objeto real lembra um diamante (Losango)?", type: "click_object", correctAnswer: "diamante", options: [{ key: "diamante", label: "Diamante 💎", shape: "losango" }, { key: "bola", label: "Bola ⚽", shape: "circulo" }, { key: "livro", label: "Livro 📚", shape: "retangulo" }] },
+            { id: 12, themeTitle: "Tema 2: Formas no Mundo Real ⚽", question: "Arraste o diamante brilhante (Losango) para dentro do Baú do Tesouro!", type: "drag_to_chest", targetShape: "losango", options: ["circulo", "losango", "triangulo"] },
+            { id: 13, themeTitle: "Tema 2: Formas no Mundo Real ⚽", question: "Arraste o Círculo verde para dentro do Baú do Tesouro!", type: "drag_to_chest", targetShape: "circulo", options: ["circulo", "quadrado", "retangulo"] },
+            { id: 14, themeTitle: "Tema 2: Formas no Mundo Real ⚽", question: "Arraste o Triângulo amarelo para guardar o tesouro no Baú!", type: "drag_to_chest", targetShape: "triangulo", options: ["losango", "triangulo", "circulo"] },
+            { id: 15, themeTitle: "Tema 2: Formas no Mundo Real ⚽", question: "O Baú quer moedas quadradas! Arraste o Quadrado para o Baú.", type: "drag_to_chest", targetShape: "quadrado", options: ["quadrado", "retangulo", "circulo"] },
+
+            // === TEMA 3: SEQUÊNCIAS & PADRÕES LÓGICOS (Desafios 16 à 20) ===
+            { id: 16, themeTitle: "Tema 3: Sequências & Padrões 🧩", question: "Qual das formas deve completar a sequência a seguir?", type: "sequence", sequencePattern: ["triangulo", "circulo", "triangulo", "circulo"], correctAnswer: "triangulo", options: ["triangulo", "quadrado", "losango"] },
+            { id: 17, themeTitle: "Tema 3: Sequências & Padrões 🧩", question: "Qual forma completa esta sequência alternada?", type: "sequence", sequencePattern: ["quadrado", "retangulo", "quadrado", "retangulo"], correctAnswer: "quadrado", options: ["quadrado", "triangulo", "circulo"] },
+            { id: 18, themeTitle: "Tema 3: Sequências & Padrões 🧩", question: "Veja com atenção! Que forma deve aparecer na interrogação?", type: "sequence", sequencePattern: ["circulo", "losango", "circulo", "losango"], correctAnswer: "circulo", options: ["circulo", "retangulo", "triangulo"] },
+            { id: 19, themeTitle: "Tema 3: Sequências & Padrões 🧩", question: "Padrão de três formas: Triângulo, Quadrado, Círculo. Quem vem a seguir?", type: "sequence", sequencePattern: ["triangulo", "quadrado", "circulo", "triangulo", "quadrado", "circulo"], correctAnswer: "triangulo", options: ["triangulo", "losango", "retangulo"] },
+            { id: 20, themeTitle: "Tema 3: Sequências & Padrões 🧩", question: "Uma das formas é diferente de todas as outras. Consegue encontrá-la?", type: "odd_one_out", correctAnswer: "circulo", grid: ["quadrado", "quadrado", "quadrado", "circulo", "quadrado"] },
+
+            // === TEMA 4: CONTAGEM & ASSOCIAÇÃO (Desafios 21 a 28) ===
+            { id: 21, themeTitle: "Tema 4: Contagem & Associação 🔢", question: "Quantos Triângulos consegues contar na imagem?", type: "counting", correctAnswer: "3", shapes: ["triangulo", "circulo", "triangulo", "quadrado", "triangulo", "retangulo"], options: ["2", "3", "4"] },
+            { id: 22, themeTitle: "Tema 4: Contagem & Associação 🔢", question: "Quantos Quadrados vermelhos consegues ver?", type: "counting", correctAnswer: "5", shapes: ["quadrado", "circulo", "quadrado", "triangulo", "quadrado", "losango", "quadrado", "quadrado"], options: ["3", "4", "5"] },
+            { id: 23, themeTitle: "Tema 4: Contagem & Associação 🔢", question: "Quantos Círculos verdes estão no painel?", type: "counting", correctAnswer: "2", shapes: ["circulo", "circulo", "retangulo", "triangulo"], options: ["2", "3", "4"] },
+            { id: 24, themeTitle: "Tema 4: Contagem & Associação 🔢", question: "Conte com cuidado! Quantos Losangos laranjas estão aqui?", type: "counting", correctAnswer: "3", shapes: ["losango", "triangulo", "losango", "quadrado", "losango"], options: ["2", "3", "4"] },
+            { id: 25, themeTitle: "Tema 4: Contagem & Associação 🔢", question: "Quantos Retângulos azuis consegues contar?", type: "counting", correctAnswer: "4", shapes: ["retangulo", "circulo", "retangulo", "triangulo", "retangulo", "retangulo"], options: ["3", "4", "5"] },
+            { id: 26, themeTitle: "Tema 4: Contagem & Associação 🔢", question: "Ligue (clique na forma e depois no nome) para juntar as duplas corretas!", type: "matching", pairs: [{ shape: "circulo", name: "Círculo" }, { shape: "triangulo", name: "Triângulo" }, { shape: "quadrado", name: "Quadrado" }] },
+            { id: 27, themeTitle: "Tema 4: Contagem & Associação 🔢", question: "Ligue cada forma geométrica à sua quantidade de lados!", type: "matching", pairs: [{ shape: "triangulo", name: "Tem 3 lados" }, { shape: "quadrado", name: "4 lados iguais" }, { shape: "circulo", name: "Não tem lados" }] },
+            { id: 28, themeTitle: "Tema 4: Contagem & Associação 🔢", question: "Ligue cada forma ao objeto real correspondente!", type: "matching", pairs: [{ shape: "circulo", name: "Moeda 🪙" }, { shape: "triangulo", name: "Pizza 🍕" }, { shape: "quadrado", name: "Dado 🎲" }] },
+
+            // === TEMA 5: CONSTRUTORES CRIATIVOS (Desafios 29 a 33) ===
+            { id: 29, themeTitle: "Tema 5: Construtores Criativos 🏠", question: "Vamos construir uma linda Casinha! Selecione o telhado (Triângulo) e depois as paredes (Quadrado).", type: "composer", theme: "house", correctCombo: ["triangulo", "quadrado"], options: ["triangulo", "quadrado", "circulo", "losango"] },
+            { id: 30, themeTitle: "Tema 5: Construtores Criativos 🏠", question: "Vamos plantar uma Árvore! Selecione o tronco (Retângulo) e a copa (Círculo).", type: "composer", theme: "tree", correctCombo: ["retangulo", "circulo"], options: ["retangulo", "circulo", "quadrado", "triangulo"] },
+            { id: 31, themeTitle: "Tema 5: Construtores Criativos 🏠", question: "Vamos lançar um Foguete! Escolha a cabine (Triângulo) e o propulsor (Losango).", type: "composer", theme: "rocket", correctCombo: ["triangulo", "losango"], options: ["triangulo", "losango", "circulo", "retangulo"] },
+            { id: 32, themeTitle: "Tema 5: Construtores Criativos 🏠", question: "Hora do lanche! Monte um Sorvete com cone (Triângulo) e bola saborosa (Círculo).", type: "composer", theme: "icecream", correctCombo: ["triangulo", "circulo"], options: ["triangulo", "circulo", "losango", "quadrado"] },
+            { id: 33, themeTitle: "Tema 5: Construtores Criativos 🏠", question: "Navegando pelos mares! Monte um Barco usando vela (Triângulo) e casco (Retângulo).", type: "composer", theme: "boat", correctCombo: ["triangulo", "retangulo"], options: ["triangulo", "retangulo", "quadrado", "losango"] }
+        ];
+
+        // Auxiliar de baralhamento seguro
+        function shuffleCopy(array) {
+            var arr = array.slice();
+            for (var i = arr.length - 1; i > 0; i--) {
+                var j = Math.floor(Math.random() * (i + 1));
+                var temp = arr[i];
+                arr[i] = arr[j];
+                arr[j] = temp;
+            }
+            return arr;
+        }
+
+        // --- STREAMING_CHUNK: Definindo funções lógicas de manipulação da UI... ---
+        function updateLivesUI() {
+            var container = document.getElementById('lives-container');
+            if (!container) return;
+            container.innerHTML = '';
+            for (var i = 0; i < 3; i++) {
+                if (i < lives) {
+                    container.innerHTML += '<img src="' + assets.heart + '" onerror="this.replaceWith(createHeartFallbackSVG())" class="w-8 h-8 md:w-9 md:h-9 object-contain animate-pulse" alt="Vida Ativa" />';
+                } else {
+                    container.innerHTML += '<div class="w-8 h-8 md:w-9 md:h-9 opacity-25 flex items-center justify-center text-slate-400 text-2xl"><i class="fa-solid fa-heart-crack"></i></div>';
+                }
+            }
+        }
+
+        function deductLife() {
+            lives--;
+            updateLivesUI();
+            updateDuduqAvatar('triste');
+            if (lives <= 0) {
+                stopTimer();
+                playIncorrectAudio();
+                changeScreen('screen-game-over');
+            }
+        }
+
+        function updateScore(points) { 
+            score += points; 
+            var scoreEl = document.getElementById('score-val');
+            if (scoreEl) scoreEl.innerText = score; 
+        }
+
+        function startTimer(duration, onTimeout) {
+            clearInterval(timerInterval);
+            var timerContainer = document.getElementById('timer-container');
+            if (timerContainer) timerContainer.classList.remove('hidden');
+            timeLeft = duration;
+            updateTimerBar(timeLeft, duration);
+            timerInterval = setInterval(function() {
+                timeLeft--;
+                updateTimerBar(timeLeft, duration);
+                if (timeLeft <= 0) { 
+                    clearInterval(timerInterval); 
+                    onTimeout(); 
+                }
+            }, 1000);
+        }
+
+        function stopTimer() { 
+            clearInterval(timerInterval); 
+            var timerContainer = document.getElementById('timer-container');
+            if (timerContainer) timerContainer.classList.add('hidden'); 
+        }
+
+        function updateTimerBar(current, total) {
+            var bar = document.getElementById('timer-bar');
+            if (!bar) return;
+            var percentage = (current / total) * 100;
+            bar.style.width = percentage + '%';
+            if (percentage > 50) {
+                bar.className = "bg-green-500 h-full rounded-full transition-all duration-300 ease-out";
+            } else if (percentage > 25) {
+                bar.className = "bg-yellow-400 h-full rounded-full transition-all duration-300 ease-out";
+            } else {
+                bar.className = "bg-red-500 h-full rounded-full transition-all duration-300 ease-out";
+            }
+        }
+
+        function initBgMusic() {
+            if (!bgMusic) {
+                bgMusic = new Audio(assets.bgMusicUrl);
+                bgMusic.loop = true;
+                bgMusic.volume = 0.12;
+            }
+        }
+
+        function startBgMusic() {
+            initBgMusic();
+            if (!isMusicMuted) {
+                bgMusic.play().catch(function() {});
+            }
+        }
+
+        function toggleMute() {
+            isMusicMuted = !isMusicMuted;
+            initBgMusic();
+            var icon = document.getElementById('mute-icon');
+            var btn = document.getElementById('mute-btn');
+            if (isMusicMuted) {
+                bgMusic.pause();
+                icon.className = "fa-solid fa-volume-xmark text-lg";
+                btn.className = "bg-rose-500 hover:bg-rose-600 active:scale-95 text-white p-2.5 rounded-xl shadow-md border-b-4 border-rose-700 active:border-b-0 active:translate-y-[4px] transition-all";
+            } else {
+                bgMusic.play().catch(function() {});
+                icon.className = "fa-solid fa-volume-high text-lg";
+                btn.className = "bg-indigo-500 hover:bg-indigo-600 active:scale-95 text-white p-2.5 rounded-xl shadow-md border-b-4 border-indigo-700 active:border-b-0 active:translate-y-[4px] transition-all";
+            }
+        }
+
+        // --- STREAMING_CHUNK: Adicionando controle de áudios e avatares... ---
+        function playStartAudio() {
+            if (isMusicMuted) return;
+            var audio = new Audio(assets.startSfx);
+            audio.volume = 0.9;
+            audio.play().catch(function(e) { console.log("Erro de áudio inicial:", e); });
+        }
+
+        function playCorrectAudio() {
+            var audio = new Audio("https://raw.githubusercontent.com/augustoborges-ship-it/Jogo-das-Forma-Geom-tricas/main/efeito_sonoro_correct.mp3");
+            audio.volume = 0.8;
+            audio.play().catch(function() { playSynthesizedSound('success'); });
+        }
+
+        function playIncorrectAudio() {
+            var audio = new Audio("https://raw.githubusercontent.com/augustoborges-ship-it/Jogo-das-Forma-Geom-tricas/main/efeito_sonoro_fail.mp3.mp3");
+            audio.volume = 0.85;
+            audio.play().catch(function() { playSynthesizedSound('error'); });
+        }
+
+        function playSynthesizedSound(type) {
+            try {
+                var AudioCtx = window.AudioContext || window.webkitAudioContext;
+                if (!AudioCtx) return;
+                var ctx = new AudioCtx();
+                var osc = ctx.createOscillator();
+                var gain = ctx.createGain();
+                osc.connect(gain); gain.connect(ctx.destination);
+                if (type === 'success') {
+                    osc.type = "sine"; osc.frequency.setValueAtTime(523, ctx.currentTime); osc.frequency.setValueAtTime(784, ctx.currentTime + 0.2);
+                    gain.gain.setValueAtTime(0.2, ctx.currentTime); gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.4);
+                    osc.start(); osc.stop(ctx.currentTime + 0.4);
+                } else {
+                    osc.type = "triangle"; osc.frequency.setValueAtTime(180, ctx.currentTime); osc.frequency.linearRampToValueAtTime(100, ctx.currentTime + 0.2);
+                    gain.gain.setValueAtTime(0.2, ctx.currentTime); gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.2);
+                    osc.start(); osc.stop(ctx.currentTime + 0.2);
+                }
+            } catch (e) {}
+        }
+
+        function updateDuduqAvatar(expression) {
+            var avatar = document.getElementById('duduq-avatar-img');
+            if (!avatar) return;
+            if (expression === 'contente') {
+                avatar.src = assets.duduqContente;
+            } else if (expression === 'triste') {
+                avatar.src = assets.duduqTriste;
+            } else {
+                var level = gameLevels[currentLevelIndex];
+                if (level.theme === "tree" || level.theme === "rocket" || level.theme === "icecream" || level.theme === "boat" || level.theme === "house") {
+                    avatar.src = assets.duduqArtista;
+                } else if (level.type === "counting" || level.type === "matching") {
+                    avatar.src = assets.duduqEstudante;
+                } else if (level.type === "drag_to_chest" || level.type === "click_object") {
+                    avatar.src = assets.duduqAventureiro;
+                } else if (level.type === "sequence" || level.type === "odd_one_out") {
+                    avatar.src = assets.duduqObservador;
+                } else {
+                    avatar.src = assets.duduqObservador;
+                }
+            }
+        }
+
+        function changeScreen(screenId) {
+            var screenList = ['screen-start', 'screen-gameplay', 'screen-win', 'screen-game-over'];
+            for (var i = 0; i < screenList.length; i++) {
+                document.getElementById(screenList[i]).classList.add('hidden');
+            }
+            document.getElementById(screenId).classList.remove('hidden');
+            activeScreen = screenId;
+            
+            if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+            
+            var header = document.getElementById('game-header');
+            var footer = document.getElementById('game-footer');
+            var container = document.getElementById('game-container');
+            var body = document.body;
+
+            if (screenId === 'screen-start') {
+                header.classList.add('hidden');
+                footer.classList.remove('hidden');
+                container.className = "relative w-full max-w-4xl bg-transparent transition-all duration-500 flex flex-col justify-center min-h-[500px] overflow-visible";
+                body.style.backgroundImage = 'url(' + assets.startBg + ')';
+                stopConfetti();
+            } else {
+                header.classList.remove('hidden');
+                footer.classList.remove('hidden');
+                container.className = "relative w-full max-w-4xl bg-white/95 backdrop-blur-md rounded-3xl shadow-2xl p-6 md:p-8 my-2 flex-grow flex flex-col justify-center min-h-0 border-8 border-indigo-400 transition-all duration-500 console-container";
+                body.style.backgroundImage = 'url(' + assets.gameBg + ')';
+                if (screenId === 'screen-win') {
+                    startConfetti(true);
+                } else {
+                    stopConfetti();
+                }
+            }
+        }
+
+        function showExitModal() {
+            var modal = document.getElementById('exit-modal');
+            if (modal) {
+                modal.classList.remove('hidden');
+                clearInterval(timerInterval);
+            }
+        }
+
+        function hideExitModal() {
+            var modal = document.getElementById('exit-modal');
+            if (modal) {
+                modal.classList.add('hidden');
+                startTimer(timeLeft, function() {
+                    playIncorrectAudio();
+                    deductLife();
+                    if (lives > 0) nextLevel();
+                });
+            }
+        }
+
+        function exitSession() {
+            hideExitModal();
+            resetGame();
+        }
+
+        function resetGame() {
+            stopTimer();
+            changeScreen('screen-start');
+        }
+
+        function showWinScreen() {
+            stopTimer();
+            var scoreEl = document.getElementById('final-score');
+            if (scoreEl) scoreEl.innerText = score;
+            changeScreen('screen-win');
+        }
+
+        function startGame() {
+            playStartAudio();
+            score = 0; 
+            lives = 3; 
+            currentLevelIndex = 0;
+            isProcessingAnswer = false;
+            var scoreEl = document.getElementById('score-val');
+            if (scoreEl) scoreEl.innerText = "0";
+            updateLivesUI();
+            buildInteractiveLevel();
+            changeScreen('screen-gameplay');
+            setTimeout(startBgMusic, 800);
+        }
+
+        function readQuestionWithSpeech() {
+            if ('speechSynthesis' in window) {
+                window.speechSynthesis.cancel();
+                var utterance = new SpeechSynthesisUtterance(gameLevels[currentLevelIndex].question);
+                utterance.lang = 'pt-PT'; utterance.rate = 0.95;
+                window.speechSynthesis.speak(utterance);
+            }
+        }
+
+        // --- STREAMING_CHUNK: Implementando gerenciador de feedbacks e colisão... ---
+        function spawnFeedbackIcon(element, isCorrect) {
+            var existingFeedback = element.querySelector('.feedback-icon-container');
+            if (existingFeedback) existingFeedback.remove();
+
+            var feedback = document.createElement('div');
+            feedback.className = "feedback-icon-container absolute bottom-1.5 right-1.5 z-50 pointer-events-none flex items-center justify-center w-10 h-10 md:w-12 md:h-12 " + (isCorrect ? 'animate-success-pop-subtle' : 'animate-error-pop-subtle');
+
+            var img = document.createElement('img');
+            img.src = isCorrect ? assets.correct : assets.incorrect;
+            img.className = "w-full h-full object-contain drop-shadow-md";
+            img.onerror = function() {
+                img.replaceWith(createFallbackIconElement(isCorrect));
+            };
+
+            feedback.appendChild(img);
+            element.appendChild(feedback);
+            setTimeout(function() { feedback.remove(); }, 1200);
+        }
+
+        function createFallbackIconElement(isCorrect) {
+            var span = document.createElement('span');
+            span.className = isCorrect ? "text-green-500 text-3xl font-bold" : "text-red-500 text-3xl font-bold";
+            span.innerText = isCorrect ? "✓" : "✗";
+            return span;
+        }
+
+        function buildInteractiveLevel() {
+            var level = gameLevels[currentLevelIndex];
+            isProcessingAnswer = false;
+            
+            var titleEl = document.getElementById('gameplay-level-title');
+            var progEl = document.getElementById('gameplay-progress');
+            if (titleEl) titleEl.innerText = level.themeTitle;
+            if (progEl) progEl.innerText = 'Jornada: ' + level.id + ' de ' + gameLevels.length;
+            
+            updateDuduqAvatar('normal');
+            
+            var zone = document.getElementById('interactive-game-zone');
+            if (zone) zone.innerHTML = ''; 
+
+            startTimer(LEVEL_TIME_LIMIT, function() {
+                playIncorrectAudio();
+                deductLife();
+                if (lives > 0) nextLevel();
+            });
+
+            // Adiciona o Duduq Megafone flutuante dinâmico
+            var megaphone = document.createElement('div');
+            megaphone.id = "floating-duduq-megafone";
+            megaphone.className = "absolute top-3 left-3 w-16 h-16 md:w-20 md:h-20 z-40 cursor-pointer overflow-visible hover:scale-110 active:scale-95 transition-transform";
+            megaphone.onclick = readQuestionWithSpeech;
+            megaphone.innerHTML = '<img id="duduq-avatar-img" src="' + assets.duduqObservador + '" class="w-full h-full object-contain animate-float-btn" alt="Duduq Ouvir" onerror="this.replaceWith(createDuduqFallback())">';
+            zone.appendChild(megaphone);
+
+            // Wrapper dinâmico para as pecinhas maiores
+            var contentWrapper = document.createElement('div');
+            contentWrapper.id = "dynamic-content-wrapper";
+            contentWrapper.className = "w-full h-full flex flex-col items-center justify-center p-2";
+            zone.appendChild(contentWrapper);
+
+            if (level.type === 'click') {
+                renderClickMechanic(level, contentWrapper);
+            } else if (level.type === 'click_object') {
+                renderClickObjectMechanic(level, contentWrapper);
+            } else if (level.type === 'sequence') {
+                renderSequenceMechanic(level, contentWrapper);
+            } else if (level.type === 'drag_shadow') {
+                renderDragShadowMechanic(level, contentWrapper);
+            } else if (level.type === 'matching') {
+                renderMatchingMechanic(level, contentWrapper);
+            } else if (level.type === 'odd_one_out') {
+                renderOddOneOutMechanic(level, contentWrapper);
+            } else if (level.type === 'counting') {
+                renderCountingMechanic(level, contentWrapper);
+            } else if (level.type === 'drag_to_chest') {
+                renderDragToChestMechanic(level, contentWrapper);
+            } else if (level.type === 'sombra_click') {
+                renderSombraClickMechanic(level, contentWrapper);
+            } else if (level.type === 'composer') {
+                renderComposerMechanic(level, contentWrapper);
+            }
+
+            // Garante que o Duduq avatar mostre a expressão correta
+            updateDuduqAvatar('normal');
+
+            setTimeout(readQuestionWithSpeech, 300);
+        }
+
+        function nextLevel() {
+            stopTimer();
+            currentLevelIndex++;
+            if (currentLevelIndex < gameLevels.length) {
+                buildInteractiveLevel();
+            } else {
+                showWinScreen();
+            }
+        }
+
+        function checkMatchingPair(level) {
+            if (matchingSelectedShape && matchingSelectedName) {
+                if (matchingSelectedShape.shape === matchingSelectedName.shape) {
+                    matchingSelectedShape.element.className = "relative flex items-center justify-center p-3 border-4 rounded-[20px] shadow h-20 matching-paired border-b-4";
+                    matchingSelectedName.element.className = "relative flex items-center justify-center p-3 border-4 rounded-[20px] shadow h-20 text-slate-400 font-bold text-xs md:text-sm text-center px-2 matching-paired border-b-4";
+                    playCorrectAudio();
+                    updateScore(5);
+                    startConfetti(false);
+                    spawnFeedbackIcon(matchingSelectedShape.element, true);
+                    spawnFeedbackIcon(matchingSelectedName.element, true);
+
+                    matchingSelectedShape = null;
+                    matchingSelectedName = null;
+                    matchedCount++;
+
+                    if (matchedCount === level.pairs.length) {
+                        setTimeout(nextLevel, 1300);
+                    }
+                } else {
+                    var shapeEl = matchingSelectedShape.element;
+                    var nameEl = matchingSelectedName.element;
+                    shapeEl.classList.add('animate-shake', 'border-red-400');
+                    nameEl.classList.add('animate-shake', 'border-red-400');
+                    deductLife();
+                    playIncorrectAudio();
+                    spawnFeedbackIcon(shapeEl, false);
+                    spawnFeedbackIcon(nameEl, false);
+
+                    setTimeout(function() {
+                        shapeEl.classList.remove('animate-shake', 'border-red-400', 'matching-selected');
+                        nameEl.classList.remove('animate-shake', 'border-red-400', 'matching-selected');
+                    }, 800);
+
+                    matchingSelectedShape = null;
+                    matchingSelectedName = null;
+                }
+            }
+        }
+
+        // --- STREAMING_CHUNK: Renderizando os cenários interativos com imagens maximizadas... ---
+        // 1. CLIQUE CLÁSSICO - TOTALMENTE AMPLIADO
+        function renderClickMechanic(level, zone) {
+            var grid = document.createElement('div');
+            grid.className = "grid grid-cols-3 gap-6 w-full max-w-2xl justify-items-center items-center p-2";
+            
+            var shuffledOptions = shuffleCopy(level.options);
+            
+            shuffledOptions.forEach(function(opt) {
+                var btn = document.createElement('button');
+                btn.className = "relative flex flex-col items-center justify-center p-4 bg-white border-4 border-slate-200 border-b-8 active:border-b-4 rounded-[32px] shadow-lg active:translate-y-[4px] transition-all w-full max-w-[140px] md:max-w-[180px] aspect-square hover:border-indigo-300";
+                
+                var color = (opt === level.correctAnswer) ? getStandardColor(opt) : getRandomColorExcept(opt, getStandardColor(level.correctAnswer));
+                var imgUrl = getShapeImgUrl(opt, color);
+                
+                btn.innerHTML = '<img src="' + imgUrl + '" onerror="handleImageError(this, \'' + opt + '\', false)" class="w-4/5 h-4/5 object-contain pointer-events-none" />';
+                
+                btn.onclick = function() {
+                    if (isProcessingAnswer) return;
+                    if (opt === level.correctAnswer) {
+                        handleCorrectAnswer(btn);
+                    } else {
+                        handleWrongAnswer(btn);
+                    }
+                };
+                grid.appendChild(btn);
+            });
+            zone.appendChild(grid);
+        }
+
+        // 2. CLIQUE EM OBJETO REAL - MAXIMIZADO
+        function renderClickObjectMechanic(level, zone) {
+            var grid = document.createElement('div');
+            grid.className = "grid grid-cols-3 gap-6 w-full max-w-2xl justify-items-center p-2";
+            
+            var shuffledOptions = shuffleCopy(level.options);
+            
+            shuffledOptions.forEach(function(opt) {
+                var btn = document.createElement('button');
+                btn.className = "relative flex flex-col items-center justify-center p-4 bg-white border-4 border-slate-200 border-b-8 active:border-b-4 rounded-[32px] shadow-lg active:translate-y-[4px] transition-all w-28 h-28 sm:w-36 sm:h-36 md:w-44 md:h-44 hover:border-indigo-300";
+                
+                var assetUrl = assets[opt.key];
+                if (assetUrl) {
+                    btn.innerHTML = '<img src="' + assetUrl + '" class="w-4/5 h-3/4 object-contain mb-1 pointer-events-none" onerror="this.replaceWith(createObjectFallback(\'' + opt.label + '\'))" /><span class="text-[10px] md:text-xs font-bold text-slate-500">' + opt.label.split(' ')[0] + '</span>';
+                } else {
+                    btn.innerHTML = '<span class="text-4xl md:text-5xl pointer-events-none mb-1">' + opt.label.split(' ')[1] + '</span><span class="text-[10px] md:text-xs font-bold text-slate-500">' + opt.label.split(' ')[0] + '</span>';
+                }
+                
+                btn.onclick = function() {
+                    if (isProcessingAnswer) return;
+                    if (opt.key === level.correctAnswer) {
+                        handleCorrectAnswer(btn);
+                    } else {
+                        handleWrongAnswer(btn);
+                    }
+                };
+                grid.appendChild(btn);
+            });
+            zone.appendChild(grid);
+        }
+
+        // 3. SEQUÊNCIA LÓGICA - AMPLIADO
+        function renderSequenceMechanic(level, zone) {
+            var container = document.createElement('div');
+            container.className = "flex flex-col items-center justify-center gap-6 w-full py-2";
+            
+            var seqRow = document.createElement('div');
+            seqRow.className = "flex flex-nowrap items-center justify-center gap-2 md:gap-4 bg-white border-4 border-slate-200 p-4 rounded-3xl shadow-inner max-w-full overflow-x-auto";
+            
+            level.sequencePattern.forEach(function(item) {
+                var box = document.createElement('div');
+                box.className = "w-12 h-12 md:w-16 md:h-16 flex items-center justify-center flex-shrink-0";
+                var imgUrl = getShapeImgUrl(item);
+                box.innerHTML = '<img src="' + imgUrl + '" onerror="handleImageError(this, \'' + item + '\', false)" class="w-10 h-10 md:w-14 md:h-14 object-contain" />';
+                seqRow.appendChild(box);
+                
+                var arrow = document.createElement('div');
+                arrow.className = "text-slate-300 font-bold text-sm md:text-base flex-shrink-0";
+                arrow.innerHTML = '<i class="fa-solid fa-arrow-right"></i>';
+                seqRow.appendChild(arrow);
+            });
+
+            var blankBox = document.createElement('div');
+            blankBox.className = "w-12 h-12 md:w-16 md:h-16 flex items-center justify-center border-4 border-dashed border-indigo-400 bg-indigo-50 rounded-2xl animate-pulse flex-shrink-0";
+            blankBox.innerHTML = '<span class="text-xl font-black text-indigo-500">?</span>';
+            seqRow.appendChild(blankBox);
+            container.appendChild(seqRow);
+
+            var optionsRow = document.createElement('div');
+            optionsRow.className = "flex gap-4 mt-2 justify-center";
+            
+            var shuffledOptions = shuffleCopy(level.options);
+            
+            shuffledOptions.forEach(function(opt) {
+                var btn = document.createElement('button');
+                btn.className = "relative w-16 h-16 md:w-24 md:h-24 bg-white border-4 border-slate-200 border-b-8 active:border-b-4 rounded-3xl flex items-center justify-center p-2.5 active:translate-y-[4px] transition-all shadow-md hover:border-indigo-300";
+                
+                var imgUrl = getShapeImgUrl(opt);
+                btn.innerHTML = '<img src="' + imgUrl + '" onerror="handleImageError(this, \'' + opt + '\', false)" class="w-10 h-10 md:w-16 md:h-16 object-contain pointer-events-none" />';
+                
+                btn.onclick = function() {
+                    if (isProcessingAnswer) return;
+                    if (opt === level.correctAnswer) {
+                        handleCorrectAnswer(btn);
+                    } else {
+                        handleWrongAnswer(btn);
+                    }
+                };
+                optionsRow.appendChild(btn);
+            });
+            container.appendChild(optionsRow);
+            zone.appendChild(container);
+        }
+
+        // 4. ARRASTE PARA A SOMBRA - AMPLIADO
+        function renderDragShadowMechanic(level, zone) {
+            var container = document.createElement('div');
+            container.className = "flex flex-col md:flex-row items-center justify-around w-full gap-6 p-1";
+
+            var targetBox = document.createElement('div');
+            targetBox.id = "drag-shadow-target";
+            targetBox.className = "relative w-36 h-36 md:w-44 md:h-44 bg-slate-100 border-4 border-dashed border-slate-300 rounded-[32px] flex flex-col items-center justify-center p-3 shadow-inner";
+            targetBox.innerHTML = '<img src="' + shapesConfig[level.dragShape].shadow + '" onerror="handleImageError(this, \'' + level.dragShape + '\', true)" class="w-24 h-24 md:w-30 md:h-30 object-contain opacity-50" /><span class="text-[9px] text-slate-400 uppercase font-black tracking-widest mt-1.5">Solta Aqui</span>';
+            
+            var piecesBox = document.createElement('div');
+            piecesBox.className = "flex gap-3";
+            
+            level.options.forEach(function(opt) {
+                var dragDiv = document.createElement('div');
+                dragDiv.id = 'drag-' + opt;
+                dragDiv.className = "relative w-24 h-24 md:w-28 md:h-28 bg-white border-4 border-indigo-200 rounded-[24px] flex items-center justify-center p-2.5 cursor-grab active:cursor-grabbing shadow-lg select-none touch-none z-10 border-b-8";
+                
+                var color = (opt === level.correctAnswer) ? getStandardColor(opt) : getRandomColorExcept(opt, getStandardColor(level.correctAnswer));
+                var imgUrl = getShapeImgUrl(opt, color);
+                
+                dragDiv.innerHTML = '<img src="' + imgUrl + '" onerror="handleImageError(this, \'' + opt + '\', false)" class="w-16 h-16 md:w-20 md:h-20 object-contain pointer-events-none" />';
+                
+                dragDiv.onpointerdown = function(e) {
+                    if (isProcessingAnswer) return;
+                    e.preventDefault();
+                    dragDiv.setPointerCapture(e.pointerId);
+                    var startX = e.clientX, startY = e.clientY;
+                    dragDiv.style.transition = "none";
+                    dragDiv.style.zIndex = "50";
+
+                    function onMove(moveEvent) {
+                        dragDiv.style.transform = 'translate3d(' + (moveEvent.clientX - startX) + 'px, ' + (moveEvent.clientY - startY) + 'px, 0)';
+                    }
+
+                    function onUp(upEvent) {
+                        dragDiv.releasePointerCapture(upEvent.pointerId);
+                        dragDiv.removeEventListener('pointermove', onMove);
+                        dragDiv.removeEventListener('pointerup', onUp);
+                        dragDiv.style.zIndex = "10";
+
+                        var dragRect = dragDiv.getBoundingClientRect();
+                        var targetRect = targetBox.getBoundingClientRect();
+                        var dist = Math.hypot((dragRect.left + dragRect.width/2) - (targetRect.left + targetRect.width/2), (dragRect.top + dragRect.height/2) - (targetRect.top + targetRect.height/2));
+
+                        if (dist < 110) {
+                            dragDiv.style.transform = "none";
+                            if (opt === level.correctAnswer) {
+                                targetBox.innerHTML = "";
+                                targetBox.appendChild(dragDiv);
+                                dragDiv.className = "w-full h-full flex items-center justify-center p-2.5 correct-glow rounded-2xl pointer-events-none border-b-4";
+                                dragDiv.onpointerdown = null;
+                                handleCorrectAnswer(targetBox);
+                            } else {
+                                handleWrongAnswer(dragDiv);
+                                dragDiv.style.transition = "transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)";
+                                dragDiv.style.transform = "translate3d(0, 0, 0)";
+                            }
+                        } else {
+                            dragDiv.style.transition = "transform 0.3s ease";
+                            dragDiv.style.transform = "translate3d(0, 0, 0)";
+                        }
+                    }
+                    dragDiv.addEventListener('pointermove', onMove);
+                    dragDiv.addEventListener('pointerup', onUp);
+                };
+                piecesBox.appendChild(dragDiv);
+            });
+
+            container.appendChild(targetBox);
+            container.appendChild(piecesBox);
+            zone.appendChild(container);
+        }
+
+        // 5. LIGUE OS PARES (MATCHING) - AMPLIADO
+        function renderMatchingMechanic(level, zone) {
+            matchingSelectedShape = null;
+            matchingSelectedName = null;
+            matchedCount = 0;
+
+            var container = document.createElement('div');
+            container.className = "grid grid-cols-2 gap-4 md:gap-8 w-full max-w-2xl h-full max-h-[350px] items-center p-2";
+
+            var shapesColumn = document.createElement('div');
+            shapesColumn.className = "flex flex-col gap-3 justify-center";
+            var namesColumn = document.createElement('div');
+            namesColumn.className = "flex flex-col gap-3 justify-center";
+
+            var shuffledShapes = level.pairs.slice().sort(function() { return Math.random() - 0.5; });
+            var shuffledNames = level.pairs.slice().sort(function() { return Math.random() - 0.5; });
+
+            shuffledShapes.forEach(function(pair) {
+                var item = document.createElement('div');
+                item.className = "relative flex items-center justify-center p-3 bg-white border-4 border-slate-200 rounded-[20px] cursor-pointer shadow-md active:scale-95 transition-all h-16 md:h-20 hover:border-indigo-300 border-b-8";
+                
+                var imgUrl = getShapeImgUrl(pair.shape, getStandardColor(pair.shape));
+                item.innerHTML = '<img src="' + imgUrl + '" onerror="handleImageError(this, \'' + pair.shape + '\', false)" class="w-12 h-12 md:w-14 md:h-14 object-contain pointer-events-none" />';
+                
+                item.onclick = function() {
+                    if (isProcessingAnswer || item.classList.contains('matching-paired')) return;
+                    shapesColumn.querySelectorAll('div').forEach(function(el) { el.classList.remove('matching-selected'); });
+                    item.classList.add('matching-selected');
+                    matchingSelectedShape = { element: item, shape: pair.shape };
+                    checkMatchingPair(level);
+                };
+                shapesColumn.appendChild(item);
+            });
+
+            shuffledNames.forEach(function(pair) {
+                var item = document.createElement('div');
+                item.className = "relative flex items-center justify-center p-3 bg-white border-4 border-slate-200 rounded-[20px] cursor-pointer shadow-md active:scale-95 transition-all h-16 md:h-20 text-slate-800 font-bold text-xs md:text-sm text-center px-2 hover:border-indigo-300 border-b-8";
+                item.innerText = pair.name;
+                
+                item.onclick = function() {
+                    if (isProcessingAnswer || item.classList.contains('matching-paired')) return;
+                    namesColumn.querySelectorAll('div').forEach(function(el) { el.classList.remove('matching-selected'); });
+                    item.classList.add('matching-selected');
+                    matchingSelectedName = { element: item, shape: pair.shape };
+                    checkMatchingPair(level);
+                };
+                namesColumn.appendChild(item);
+            });
+
+            container.appendChild(shapesColumn);
+            container.appendChild(namesColumn);
+            zone.appendChild(container);
+        }
+
+        // 6. ENCONTRE O INTRUSO - AMPLIADO
+        function renderOddOneOutMechanic(level, zone) {
+            var grid = document.createElement('div');
+            grid.className = "grid grid-cols-5 gap-4 w-full max-w-xl justify-items-center items-center p-2";
+            
+            var shuffledGrid = shuffleCopy(level.grid);
+            
+            shuffledGrid.forEach(function(opt, idx) {
+                var btn = document.createElement('button');
+                btn.className = "relative flex items-center justify-center p-2.5 bg-white border-4 border-slate-200 rounded-2xl active:scale-95 transition-all w-20 h-20 md:w-24 md:h-24 shadow-md hover:border-indigo-300 border-b-6";
+                
+                var imgUrl = getShapeImgUrl(opt);
+                btn.innerHTML = '<img src="' + imgUrl + '" onerror="handleImageError(this, \'' + opt + '\', false)" class="w-14 h-14 md:w-18 md:h-18 object-contain pointer-events-none" />';
+                
+                btn.onclick = function() {
+                    if (isProcessingAnswer) return;
+                    if (opt === level.correctAnswer) {
+                        handleCorrectAnswer(btn);
+                    } else {
+                        handleWrongAnswer(btn);
+                    }
+                };
+                grid.appendChild(btn);
+            });
+            zone.appendChild(grid);
+        }
+
+        // 7. CONTAGEM DE FORMAS - AMPLIADO
+        function renderCountingMechanic(level, zone) {
+            var container = document.createElement('div');
+            container.className = "flex flex-col items-center justify-center gap-6 w-full h-full";
+
+            var displayBox = document.createElement('div');
+            displayBox.className = "flex flex-wrap gap-4 bg-white border-4 border-slate-200 p-6 rounded-3xl shadow-inner max-w-2xl justify-center items-center";
+            
+            level.shapes.forEach(function(item) {
+                var shapeImg = document.createElement('img');
+                
+                shapeImg.src = getShapeImgUrl(item, getStandardColor(item));
+                shapeImg.className = "w-12 h-12 md:w-18 md:h-18 object-contain transition-transform hover:scale-110 duration-200";
+                shapeImg.onerror = function() { handleImageError(shapeImg, item, false); };
+                displayBox.appendChild(shapeImg);
+            });
+            container.appendChild(displayBox);
+
+            var optionsRow = document.createElement('div');
+            optionsRow.className = "flex gap-5 justify-center items-center";
+            
+            level.options.forEach(function(opt) {
+                var btn = document.createElement('button');
+                btn.className = "relative bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white font-black text-2xl md:text-3xl w-14 h-14 md:w-18 md:h-18 rounded-full shadow-lg transition-all flex items-center justify-center border-4 border-indigo-400 select-none border-b-6 active:border-b-4 active:translate-y-[2px]";
+                btn.innerText = opt;
+                
+                btn.onclick = function() {
+                    if (isProcessingAnswer) return;
+                    if (opt === level.correctAnswer) {
+                        handleCorrectAnswer(btn);
+                    } else {
+                        handleWrongAnswer(btn);
+                    }
+                };
+                optionsRow.appendChild(btn);
+            });
+            container.appendChild(optionsRow);
+            zone.appendChild(container);
+        }
+
+        // 8. BAÚ DO TESOURO - AMPLIADO E ROBUSTO
+        function renderDragToChestMechanic(level, zone) {
+            var container = document.createElement('div');
+            container.className = "flex flex-col md:flex-row items-center justify-around w-full gap-6 p-1";
+
+            var chestBox = document.createElement('div');
+            chestBox.id = "chest-target";
+            chestBox.className = "relative w-36 h-36 md:w-44 md:h-44 bg-amber-50 border-4 border-amber-300 rounded-[32px] flex flex-col items-center justify-center p-3 shadow-inner overflow-hidden";
+            chestBox.innerHTML = '<img src="' + assets.chest + '" alt="Baú" class="w-22 h-22 md:w-28 md:h-28 object-contain mb-1 filter drop-shadow-md" onerror="this.replaceWith(createChestFallback())" /><span class="text-[9px] md:text-[10px] text-amber-700 font-bold uppercase tracking-wider">Baú das Formas</span>';
+
+            var piecesBox = document.createElement('div');
+            piecesBox.className = "flex gap-3";
+            
+            level.options.forEach(function(opt) {
+                var dragDiv = document.createElement('div');
+                dragDiv.id = 'chest-drag-' + opt;
+                dragDiv.className = "relative w-20 h-20 md:w-24 md:h-24 bg-white border-4 border-slate-200 rounded-[20px] flex items-center justify-center p-2 cursor-grab active:cursor-grabbing shadow-lg select-none touch-none z-10 border-b-6";
+                
+                var color = (opt === level.targetShape) ? getStandardColor(opt) : getRandomColorExcept(opt, getStandardColor(level.targetShape));
+                var imgUrl = getShapeImgUrl(opt, color);
+                
+                dragDiv.innerHTML = '<img src="' + imgUrl + '" onerror="handleImageError(this, \'' + opt + '\', false)" class="w-12 h-12 md:w-16 md:h-16 object-contain pointer-events-none" />';
+                
+                dragDiv.onpointerdown = function(e) {
+                    if (isProcessingAnswer) return;
+                    e.preventDefault();
+                    dragDiv.setPointerCapture(e.pointerId);
+                    var startX = e.clientX, startY = e.clientY;
+                    dragDiv.style.transition = "none";
+                    dragDiv.style.zIndex = "50";
+
+                    function onMove(moveEvent) {
+                        dragDiv.style.transform = 'translate3d(' + (moveEvent.clientX - startX) + 'px, ' + (moveEvent.clientY - startY) + 'px, 0)';
+                    }
+
+                    function onUp(upEvent) {
+                        dragDiv.releasePointerCapture(upEvent.pointerId);
+                        dragDiv.removeEventListener('pointermove', onMove);
+                        dragDiv.removeEventListener('pointerup', onUp);
+                        dragDiv.style.zIndex = "10";
+
+                        var dragRect = dragDiv.getBoundingClientRect();
+                        var targetRect = chestBox.getBoundingClientRect();
+                        var dist = Math.hypot((dragRect.left + dragRect.width/2) - (targetRect.left + targetRect.width/2), (dragRect.top + dragRect.height/2) - (targetRect.top + targetRect.height/2));
+
+                        if (dist < 110) {
+                            dragDiv.style.transform = "none";
+                            if (opt === level.targetShape) {
+                                chestBox.innerHTML = "";
+                                chestBox.appendChild(dragDiv);
+                                dragDiv.className = "w-full h-full flex items-center justify-center p-2 correct-glow rounded-2xl pointer-events-none border-b-4";
+                                dragDiv.onpointerdown = null;
+                                chestBox.classList.add('bg-yellow-100', 'border-yellow-400');
+                                handleCorrectAnswer(chestBox);
+                            } else {
+                                handleWrongAnswer(dragDiv);
+                                dragDiv.style.transition = "transform 0.3s ease";
+                                dragDiv.style.transform = "translate3d(0, 0, 0)";
+                            }
+                        } else {
+                            dragDiv.style.transition = "transform 0.3s ease";
+                            dragDiv.style.transform = "translate3d(0, 0, 0)";
+                        }
+                    }
+                    dragDiv.addEventListener('pointermove', onMove);
+                    dragDiv.addEventListener('pointerup', onUp);
+                };
+                piecesBox.appendChild(dragDiv);
+            });
+
+            container.appendChild(chestBox);
+            container.appendChild(piecesBox);
+            zone.appendChild(container);
+        }
+
+        // 9. SOMBRA POR CLIQUE - AMPLIADO
+        function renderSombraClickMechanic(level, zone) {
+            var container = document.createElement('div');
+            container.className = "flex flex-col items-center justify-center gap-5 w-full h-full";
+
+            var originalBox = document.createElement('div');
+            originalBox.className = "w-24 h-24 md:w-32 md:h-32 bg-white border-4 border-indigo-200 rounded-3xl flex items-center justify-center p-2.5 shadow-md mb-1";
+            
+            var imgUrlSource = getShapeImgUrl(level.sourceShape, getStandardColor(level.sourceShape));
+            originalBox.innerHTML = '<img src="' + imgUrlSource + '" onerror="handleImageError(this, \'' + level.sourceShape + '\', false)" class="w-16 h-16 md:w-24 md:h-24 object-contain" />';
+            container.appendChild(originalBox);
+
+            var optionsRow = document.createElement('div');
+            optionsRow.className = "flex gap-5 justify-center";
+            
+            level.options.forEach(function(opt) {
+                var btn = document.createElement('button');
+                btn.className = "relative w-24 h-24 md:w-32 md:h-32 bg-white border-4 border-slate-200 rounded-[28px] flex items-center justify-center p-2.5 active:scale-95 transition-all shadow-md hover:border-indigo-300 border-b-6";
+                btn.innerHTML = '<img src="' + shapesConfig[opt].shadow + '" onerror="handleImageError(this, \'' + opt + '\', true)" class="w-16 h-16 md:w-24 md:h-24 object-contain pointer-events-none" />';
+                
+                btn.onclick = function() {
+                    if (isProcessingAnswer) return;
+                    if (opt === level.correctAnswer) {
+                        handleCorrectAnswer(btn);
+                    } else {
+                        handleWrongAnswer(btn);
+                    }
+                };
+                optionsRow.appendChild(btn);
+            });
+            container.appendChild(optionsRow);
+            zone.appendChild(container);
+        }
+
+        // 10. CONSTRUTOR CRIATIVO - AMPLIADO
+        function renderIncorrectPart(opt, previewZone) {
+            var part = document.createElement('div');
+            part.className = "absolute z-30 opacity-70 animate-bounce";
+            part.innerHTML = '<img src="' + shapesConfig[opt].img + '" class="w-12 h-12 object-contain" />';
+            previewZone.appendChild(part);
+        }
+
+        function renderComposerMechanic(level, zone) {
+            composerSelectedParts = [];
+            
+            var container = document.createElement('div');
+            container.className = "flex flex-col md:flex-row items-center justify-center gap-8 md:gap-16 w-full h-full max-h-[350px] p-2";
+
+            var board = document.createElement('div');
+            board.id = "composer-canvas-board";
+            board.className = "relative w-44 h-44 md:w-56 md:h-56 bg-slate-100 border-4 border-dashed border-indigo-300 rounded-[36px] flex flex-col items-center justify-center p-4 shadow-inner";
+            board.innerHTML = '<div id="canvas-preview-elements" class="relative w-full h-full flex flex-col items-center justify-center"></div><span id="canvas-label" class="absolute bottom-2 text-[9px] text-indigo-500 font-bold uppercase tracking-wider">Mesa de Construção</span>';
+
+            var palette = document.createElement('div');
+            palette.className = "grid grid-cols-2 gap-3 md:gap-4";
+
+            level.options.forEach(function(opt) {
+                var btn = document.createElement('button');
+                btn.className = "relative flex flex-col items-center justify-center p-2 bg-white border-4 border-slate-200 rounded-[24px] shadow active:scale-95 transition-all w-20 h-20 md:w-24 md:h-24 hover:border-indigo-300 border-b-6";
+                
+                var imgUrl = getShapeImgUrl(opt, getStandardColor(opt));
+                btn.innerHTML = '<img src="' + imgUrl + '" onerror="handleImageError(this, \'' + opt + '\', false)" class="w-13 h-13 object-contain mb-0.5 pointer-events-none" />';
+                
+                btn.onclick = function() {
+                    if (isProcessingAnswer) return;
+                    if (composerSelectedParts.indexOf(opt) !== -1) return;
+                    composerSelectedParts.push(opt);
+                    
+                    var previewZone = document.getElementById('canvas-preview-elements');
+                    var label = document.getElementById('canvas-label');
+                    if (label) label.remove();
+
+                    if (level.theme === "house") {
+                        if (opt === "triangulo") {
+                            var part = document.createElement('img');
+                            part.src = getShapeImgUrl("triangulo", getStandardColor("triangulo"));
+                            part.className = "w-24 h-24 absolute top-2 z-20 object-contain drop-shadow-md";
+                            part.onerror = function() { part.replaceWith(getFallbackSVG('triangulo', false)); };
+                            previewZone.appendChild(part);
+                        } else if (opt === "quadrado") {
+                            var part = document.createElement('img');
+                            part.src = getShapeImgUrl("quadrado", getStandardColor("quadrado"));
+                            part.className = "w-20 h-20 absolute bottom-2 z-10 object-contain drop-shadow-md";
+                            part.onerror = function() { part.replaceWith(getFallbackSVG('quadrado', false)); };
+                            previewZone.appendChild(part);
+                        } else {
+                            renderIncorrectPart(opt, previewZone);
+                        }
+                    } else if (level.theme === "tree") {
+                        if (opt === "retangulo") {
+                            var part = document.createElement('img');
+                            part.src = getShapeImgUrl("retangulo", getStandardColor("retangulo"));
+                            part.className = "w-10 h-24 absolute bottom-2 z-10 object-contain drop-shadow-md rotate-90";
+                            part.onerror = function() { part.replaceWith(getFallbackSVG('retangulo', false)); };
+                            previewZone.appendChild(part);
+                        } else if (opt === "circulo") {
+                            var part = document.createElement('img');
+                            part.src = getShapeImgUrl("circulo", getStandardColor("circulo"));
+                            part.className = "w-24 h-24 absolute top-4 z-20 object-contain drop-shadow-md";
+                            part.onerror = function() { part.replaceWith(getFallbackSVG('circulo', false)); };
+                            previewZone.appendChild(part);
+                        } else {
+                            renderIncorrectPart(opt, previewZone);
+                        }
+                    } else if (level.theme === "rocket") {
+                        if (opt === "triangulo") {
+                            var part = document.createElement('img');
+                            part.src = getShapeImgUrl("triangulo", getStandardColor("triangulo"));
+                            part.className = "w-16 h-16 absolute top-4 z-20 object-contain drop-shadow-md";
+                            part.onerror = function() { part.replaceWith(getFallbackSVG('triangulo', false)); };
+                            previewZone.appendChild(part);
+                        } else if (opt === "losango") {
+                            var part = document.createElement('img');
+                            part.src = getShapeImgUrl("losango", getStandardColor("losango"));
+                            part.className = "w-20 h-28 absolute bottom-4 z-10 object-contain drop-shadow-md";
+                            part.onerror = function() { part.replaceWith(getFallbackSVG('losango', false)); };
+                            previewZone.appendChild(part);
+                        } else {
+                            renderIncorrectPart(opt, previewZone);
+                        }
+                    } else if (level.theme === "icecream") {
+                        if (opt === "triangulo") {
+                            var part = document.createElement('img');
+                            part.src = getShapeImgUrl("triangulo", getStandardColor("triangulo"));
+                            part.className = "w-20 h-20 absolute bottom-4 z-10 object-contain drop-shadow-md rotate-180";
+                            part.onerror = function() { part.replaceWith(getFallbackSVG('triangulo', false)); };
+                            previewZone.appendChild(part);
+                        } else if (opt === "circulo") {
+                            var part = document.createElement('img');
+                            part.src = getShapeImgUrl("circulo", getStandardColor("circulo"));
+                            part.className = "w-20 h-20 absolute top-6 z-20 object-contain drop-shadow-md";
+                            part.onerror = function() { part.replaceWith(getFallbackSVG('circulo', false)); };
+                            previewZone.appendChild(part);
+                        } else {
+                            renderIncorrectPart(opt, previewZone);
+                        }
+                    } else if (level.theme === "boat") {
+                        if (opt === "triangulo") {
+                            var part = document.createElement('img');
+                            part.src = getShapeImgUrl("triangulo", getStandardColor("triangulo"));
+                            part.className = "w-18 h-20 absolute top-4 z-20 object-contain drop-shadow-md";
+                            part.onerror = function() { part.replaceWith(getFallbackSVG('triangulo', false)); };
+                            previewZone.appendChild(part);
+                        } else if (opt === "retangulo") {
+                            var part = document.createElement('img');
+                            part.src = getShapeImgUrl("retangulo", getStandardColor("retangulo"));
+                            part.className = "w-28 h-12 absolute bottom-6 z-10 object-contain drop-shadow-md";
+                            part.onerror = function() { part.replaceWith(getFallbackSVG('retangulo', false)); };
+                            previewZone.appendChild(part);
+                        } else {
+                            renderIncorrectPart(opt, previewZone);
+                        }
+                    }
+
+                    if (composerSelectedParts.length === level.correctCombo.length) {
+                        var isAllCorrect = level.correctCombo.every(function(val) { return composerSelectedParts.indexOf(val) !== -1; });
+                        
+                        if (isAllCorrect) {
+                            setTimeout(function() {
+                                var finalEmoji = "🏠";
+                                if (level.theme === "tree") finalEmoji = "🌳";
+                                if (level.theme === "rocket") finalEmoji = "🚀";
+                                if (level.theme === "icecream") finalEmoji = "🍦";
+                                if (level.theme === "boat") finalEmoji = "⛵";
+
+                                previewZone.innerHTML = '<span class="text-7xl md:text-8xl animate-bounce">' + finalEmoji + '</span>';
+                                handleCorrectAnswer(board);
+                            }, 1000);
+                        } else {
+                            setTimeout(function() {
+                                handleWrongAnswer(board);
+                                previewZone.innerHTML = '';
+                                composerSelectedParts = [];
+                            }, 1000);
+                        }
+                    }
+                };
+                palette.appendChild(btn);
+            });
+
+            container.appendChild(board);
+            container.appendChild(palette);
+            zone.appendChild(container);
+        }
+
+        // --- STREAMING_CHUNK: Ativando sistemas de respostas e fogos de comemoração... ---
+        function handleCorrectAnswer(targetElement) {
+            if (isProcessingAnswer) return;
+            isProcessingAnswer = true;
+            playCorrectAudio();
+            updateScore(15);
+            startConfetti(false);
+            spawnFeedbackIcon(targetElement, true);
+            updateDuduqAvatar('contente');
+            
+            var interactiveZone = document.getElementById('interactive-game-zone');
+            interactiveZone.classList.add('pointer-events-none');
+
+            setTimeout(function() {
+                interactiveZone.classList.remove('pointer-events-none');
+                nextLevel();
+            }, 1400);
+        }
+
+        function handleWrongAnswer(targetElement) {
+            playIncorrectAudio();
+            deductLife();
+            spawnFeedbackIcon(targetElement, false);
+            
+            targetElement.classList.add('animate-shake');
+            setTimeout(function() {
+                targetElement.classList.remove('animate-shake');
+            }, 500);
+        }
+
+        // --- SISTEMA DE CONFETES ---
+        var canvas = document.getElementById('confetti-canvas'), ctx = canvas.getContext('2d');
+        var confetti = [], animationFrameId = null, confettiLoop = true;
+        
+        function startConfetti(loop) {
+            if (loop === undefined) loop = true;
+            confettiLoop = loop; canvas.classList.remove('hidden'); canvas.width = window.innerWidth; canvas.height = window.innerHeight;
+            confetti = []; 
+            var total = loop ? 120 : 55;
+            for (var i = 0; i < total; i++) {
+                confetti.push({ 
+                    x: Math.random() * canvas.width, 
+                    y: loop ? (Math.random() * canvas.height - canvas.height) : (Math.random() * (canvas.height * 0.4)), 
+                    size: Math.random() * 10 + 6, 
+                    color: 'hsla(' + (Math.random() * 360) + ', 100%, 65%, 1)', 
+                    speed: loop ? (Math.random() * 4 + 2) : (Math.random() * 6 + 4), 
+                    angle: Math.random() * 360, 
+                    spinSpeed: Math.random() * 0.2 - 0.1 
+                });
+            }
+            if (animationFrameId) cancelAnimationFrame(animationFrameId); drawConfetti();
+        }
+        
+        function drawConfetti() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height); 
+            var active = false;
+            confetti.forEach(function(p) { 
+                p.y += p.speed; 
+                p.angle += p.spinSpeed; 
+                if (p.y < canvas.height) active = true; 
+                ctx.save(); 
+                ctx.translate(p.x, p.y); 
+                ctx.rotate(p.angle); 
+                ctx.fillStyle = p.color; 
+                ctx.fillRect(-p.size/2, -p.size/2, p.size, p.size); 
+                ctx.restore(); 
+            });
+            if (active) {
+                animationFrameId = requestAnimationFrame(drawConfetti);
+            } else if (confettiLoop) {
+                startConfetti(true);
+            } else {
+                stopConfetti();
+            }
+        }
+        
+        function stopConfetti() { 
+            if (animationFrameId) cancelAnimationFrame(animationFrameId); 
+            animationFrameId = null; 
+            canvas.classList.add('hidden'); 
+        }
+
+        // Inicialização do Ecrã Inicial na primeira execução
+        window.onload = function() {
+            updateLivesUI();
+            changeScreen('screen-start');
+        };
+    </script>
+</body>
+</html>
